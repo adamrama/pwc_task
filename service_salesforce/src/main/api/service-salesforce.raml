@@ -1,0 +1,25 @@
+#%RAML 1.0
+title: SalesForce service
+version: v1
+mediaType: application/json
+protocols:
+  - HTTP
+baseUri: service/salesforce
+  
+/customer:
+  post:
+    responses:
+      201:
+        body:
+          application/json:
+  /{ID}:
+    get:
+      responses: 
+        200:
+          body: 
+            application/json:
+    put:
+      responses:
+        200:
+          body:
+            application/json:

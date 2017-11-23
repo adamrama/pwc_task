@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:sfdc="http://www.mulesoft.org/schema/mule/sfdc" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/sfdc http://www.mulesoft.org/schema/mule/sfdc/current/mule-sfdc.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
+    <flow name="getCustomerById">
+        <sfdc:query config-ref="Salesforce__Basic_Authentication" query="dsql:SELECT AccountNumber,AccountSource,Active__c,BillingCity,BillingCountry,BillingGeocodeAccuracy,BillingLatitude,BillingLongitude,BillingPostalCode,BillingState,BillingStreet,CleanStatus,Description,Id,IsDeleted,Name,Phone,Sic,SicDesc,Type FROM Account WHERE Id = '#[flowVars.ID]'" doc:name="Salesforce"/>
+        <choice doc:name="Choice">
+            <when expression="payload.hasNext()">
+                <dw:transform-message doc:name="Map To CDM" metadata:id="2b43ea79-d5e8-4559-b3cc-8799988d6e68">
+                    <dw:input-payload/>
+                    <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+(payload map ((payload01 , indexOfPayload01) -> {
+	id: payload01.Id,
+	name: payload01.Name,
+	socialNumber: payload01.AccountNumber,
+	address: {
+		city: payload01.BillingCity,
+		street: payload01.BillingStreet,
+		zipCode: payload01.BillingPostalCode when payload01.BillingPostalCode != null otherwise ""
+	}
+}))[0]]]></dw:set-payload>
+                </dw:transform-message>
+                <json:validate-schema schemaLocation="cdm/customer.json" doc:name="Validate CDM"/>
+            </when>
+            <otherwise>
+                <set-payload value="{}" doc:name=" Set empty Payload"/>
+            </otherwise>
+        </choice>
+        <set-property propertyName="Content-Type" value="application/json" doc:name="Set Property"/>
+    </flow>
+</mule>

@@ -1,0 +1,26 @@
+{
+    "title": "Order",
+    "type": "object",
+    "id":"http://com.pwc.training.task.cdm/order",
+    "required": ["date", "amount"],
+    "properties": {
+        "number": {
+    		"id":"http://com.pwc.training.task.cdm/order/number",
+            "type": "string"
+        },
+        "customerId": {
+    		"id":"http://com.pwc.training.task.cdm/order/customerid",
+            "type": "string"
+        },
+        "date": {
+    		"id":"http://com.pwc.training.task.cdm/order/date",
+            "type": "string",
+            "format": "date-time",
+            "description": "Order dateTime"
+        },
+        "amount": {
+    		"id":"http://com.pwc.training.task.cdm/order/amount",
+            "type": "number"
+        }
+    }
+}

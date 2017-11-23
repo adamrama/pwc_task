@@ -1,0 +1,33 @@
+{
+    "title": "Customer",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "string"
+        },
+        "name": {
+            "type": "string"
+        },
+        "address":{
+    "title": "Address",
+    "type": "object",
+    "id":"http://com.pwc.training.task.cdm/address",
+    "properties": {
+        "street": {
+            "type": "string",
+    "id":"http://com.pwc.training.task.cdm/address/street"
+        },
+        "city": {
+            "type": "string",
+    "id":"http://com.pwc.training.task.cdm/address/city"
+        },
+        "zipCode": {
+            "type": "string",
+    "id":"http://com.pwc.training.task.cdm/address/zipcode"
+        }
+    },
+    "required": ["street", "city", "zipCode"]
+}
+    },
+    "required": ["name", "address"]
+}

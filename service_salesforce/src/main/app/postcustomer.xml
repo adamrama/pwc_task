@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:json="http://www.mulesoft.org/schema/mule/json"
+	xmlns:sfdc="http://www.mulesoft.org/schema/mule/sfdc" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/sfdc http://www.mulesoft.org/schema/mule/sfdc/current/mule-sfdc.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
+	<flow name="postCustomer" doc:description="note">
+		<json:validate-schema schemaLocation="cdm/customer.json" doc:name="Validate CDM input" />
+        <dw:transform-message doc:name="Transform Message" metadata:id="1ccdcc1d-2127-46e7-abf1-d4d6bc1b7ffa">
+            <dw:input-payload mimeType="application/json"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+{
+	Name: payload.name,
+	BillingStreet: payload.address.street,
+	BillingCity: payload.address.city,
+	BillingPostalCode: payload.address.zipCode,
+	AccountNumber: payload.socialNumber
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <sfdc:create-single config-ref="Salesforce__Basic_Authentication" type="Account" doc:name="Salesforce"/>
+        <!-- <sfdc:create config-ref="Salesforce__Basic_Authentication" type="Account" doc:name="Salesforce">
+            <sfdc:objects ref="#[payload]"/>
+        </sfdc:create> -->
+		<choice doc:name="Choice">
+			<when expression="#[payload.success==false]">
+				<set-property propertyName="http.status" value="#[409]" doc:name="Property" />
+			</when>
+			<otherwise>
+				<logger message="#[null]" level="INFO" doc:name="Logger" />
+			</otherwise>
+		</choice>
+		<dw:transform-message doc:name="Transform Message">
+			<dw:input-payload doc:sample="sample_data\SaveResult_1.dwl" />
+			<dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+{
+	status: "OK" when payload.success == true otherwise "ERROR",
+	(id : payload.id) when payload.id != null,
+	(description : payload.errors[0].statusCode) when payload.errors != null and (sizeOf payload.errors) > 0
+}]]></dw:set-payload>
+		</dw:transform-message>
+		<set-property propertyName="Content-Type" value="application/json" doc:name="Set Property" />
+	</flow>
+</mule>

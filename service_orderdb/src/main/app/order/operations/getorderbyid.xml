@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
+    <flow name="getOrderByIdFlow">
+        <db:select config-ref="MySQL_Configuration" doc:name="Database">
+            <db:parameterized-query><![CDATA[SELECT * FROM orderdb.`order` where id = #[Integer.parseInt(flowVars.ID)] limit 1;]]></db:parameterized-query>
+        </db:select>
+        <dw:transform-message doc:name="Transform Message" metadata:id="37686c24-b23e-4c67-9c60-fb24da7504b8">
+            <dw:input-payload doc:sample="sample_data\list_map.dwl"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+(payload map ((payload01 , indexOfPayload01) -> {
+	amount: payload01.amount as :number,
+	customerId: payload01.customer_id,
+	date: payload01.date as :string,
+	number: payload01.id as :string
+}))[0] when (sizeOf payload) >0 otherwise {}]]></dw:set-payload>
+        </dw:transform-message>
+        <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+    </flow>
+</mule>

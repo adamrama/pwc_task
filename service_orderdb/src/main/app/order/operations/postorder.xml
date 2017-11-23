@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
+    <flow name="postOrderFlow">
+        <json:validate-schema schemaLocation="cdm/order.json" doc:name="CDM Order Validate"/>
+        <set-variable variableName="id" value="#[json:number]" doc:name="Variable"/>
+        <dw:transform-message doc:name="Transform Message" metadata:id="a387d2d3-4064-4ad4-99a9-8f48cc6107cb">
+            <dw:input-payload mimeType="application/json" doc:sample="sample_data\json.json"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+%function dateFormat(val) (val as :datetime as :string {format: "YYYY-MM-dd HH:mm:ss"}) when val != null otherwise ''
+---
+{
+	amount: payload.amount,
+	customerId: payload.customerId,
+	date: dateFormat(payload.date),
+	number: payload.number
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <db:insert config-ref="MySQL_Configuration" doc:name="Database">
+            <db:parameterized-query><![CDATA[INSERT INTO `orderdb`.`order`
+(`id`,
+`customer_id`,
+`date`,
+`amount`)
+VALUES
+(#[payload.number],
+#[payload.customerId],
+#[payload.date],
+#[payload.amount]);]]></db:parameterized-query>
+        </db:insert>
+        <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+        <set-payload value="{
+	&quot;status&quot;:&quot;OK&quot;,
+	&quot;id&quot;:&quot;#[flowVars.id]&quot;
+}" doc:name="Set Payload"/>
+        <choice-exception-strategy doc:name="postorderChoice_Exception_Strategy">
+            <catch-exception-strategy when="#[exception.causeMatches('java.sql.SQLIntegrityConstraintViolationException')]" doc:name="SQLIntegrityConstraintViolationException">
+                <set-property propertyName="http.status" value="#[409]" doc:name="set 409 status"/>
+                <set-property propertyName="Content-Type" value="application/json" doc:name="Set json content-type"/>
+                <set-payload value="{
+	&quot;status&quot;:&quot;ERROR&quot;,
+	&quot;description&quot;:&quot;#[exception]&quot;
+}" doc:name="Set Payload"/>
+            </catch-exception-strategy>
+            <catch-exception-strategy doc:name="Catch Exception Strategy"/>
+        </choice-exception-strategy>
+    </flow>
+</mule>

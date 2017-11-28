@@ -1,0 +1,45 @@
+#%RAML 1.0
+title: Order processing
+version: v1
+mediaType: application/json
+protocols:
+  - HTTP
+baseUri: process
+  
+/order:
+  get:
+    queryParameters:
+       date:
+         pattern: "\\d{4}-\\d{2}-\\d{2}"
+         required: false
+       customerId:
+         type: string
+         required: false
+    responses:
+      200:
+        body: 
+          application/json:
+  post:
+    responses:
+      201:
+        body:
+          application/json:
+  /{ID}:
+    get:
+      responses: 
+        200:
+          body: 
+            application/json:
+  /report:
+    get:
+      queryParameters:
+         date:
+           pattern: "\\d{4}-\\d{2}-\\d{2}"
+           required: false
+         customerId:
+           type: string
+           required: false
+      responses:
+        200:
+          body: 
+            application/json:

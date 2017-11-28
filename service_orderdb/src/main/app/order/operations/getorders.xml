@@ -9,11 +9,11 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
 http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
     <flow name="getOrders">
-        <db:select config-ref="MySQL_Configuration" doc:name="Get By Date">
+        <db:select config-ref="MySQL_Configuration" doc:name="Database">
             <db:dynamic-query><![CDATA[SELECT * FROM orderdb.order
 WHERE 1=1
 #[(message.inboundProperties.'http.query.params'.customerId != '' and message.inboundProperties.'http.query.params'.customerId != null) ? 
-' AND customer_id = '+message.inboundProperties.'http.query.params'.customerId:'']
+' AND customer_id = \''+message.inboundProperties.'http.query.params'.customerId+'\'':'']
 
 #[(message.inboundProperties.'http.query.params'.date != '' and message.inboundProperties.'http.query.params'.date != null) ? 
 ' AND DATE(date) = \''+message.inboundProperties.'http.query.params'.date+'\'':'']
@@ -21,15 +21,15 @@ order by date
 ;]]></db:dynamic-query>
         </db:select>
         <dw:transform-message doc:name="Transform Message" metadata:id="37686c24-b23e-4c67-9c60-fb24da7504b8">
-            <dw:input-payload doc:sample="sample_data\list_map.dwl"/>
+            <dw:input-payload doc:sample="sample_data\list_map_2.dwl"/>
             <dw:set-payload><![CDATA[%dw 1.0
 %output application/json
 ---
 payload map ((payload01 , indexOfPayload01) -> {
 	amount: payload01.amount as :number,
 	customerId: payload01.customer_id,
-	date: payload01.date as :string,
-	number: payload01.id as :string
+	date: payload01.date when (payload01.date contains "Z") or payload01.date==null otherwise payload01.date ++ "Z",
+	number: payload01.id as :string 
 })]]></dw:set-payload>
         </dw:transform-message>
         <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>

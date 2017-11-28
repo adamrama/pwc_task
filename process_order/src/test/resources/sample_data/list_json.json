@@ -1,0 +1,44 @@
+[
+  {
+    "amount": 20.00,
+    "customerId": "0010O00001r9HZNQA2",
+    "date": "2017-02-01T13:40:50",
+    "number": "12347"
+  },
+  {
+    "amount": 20.00,
+    "customerId": "0010O00001r9HZNQA2",
+    "date": "2017-02-01T13:40:50",
+    "number": "12348"
+  },
+  {
+    "amount": 250.00,
+    "customerId": "0010O00001r9HZNQA2",
+    "date": "2017-02-01T13:40:50",
+    "number": "123499"
+  },
+  {
+    "amount": 257.99,
+    "customerId": "0010O00001r9HZNQA2",
+    "date": "2017-03-01T13:40:50",
+    "number": "12311"
+  },
+  {
+    "amount": 250.00,
+    "customerId": "0010O00001r9HZNQA2",
+    "date": "2017-03-01T13:40:50",
+    "number": "12349"
+  },
+  {
+    "amount": 257.99,
+    "customerId": "0010O00001r9HZNQA2",
+    "date": "2017-03-01T13:40:50",
+    "number": "12350"
+  },
+  {
+    "amount": 257.99,
+    "customerId": "0010O00001r9HZNQA2",
+    "date": "2017-03-01T13:40:50",
+    "number": "1235990"
+  }
+]

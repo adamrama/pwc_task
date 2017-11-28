@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/apikit http://www.mulesoft.org/schema/mule/apikit/current/mule-apikit.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
+
+    <apikit:config name="process_customer-config" raml="process_customer.raml" consoleEnabled="false" doc:name="Router" keepRamlBaseUri="false"/>
+    <flow name="process_customer-main">
+        <http:listener config-ref="process_customer-httpListenerConfig" path="/process/*" doc:name="HTTP" />
+        <apikit:router config-ref="process_customer-config" doc:name="APIkit Router" />
+        <exception-strategy ref="apiKitGlobalExceptionMapping" doc:name="Reference Exception Strategy" />
+    </flow>
+    <flow name="process_customer-console">
+        <http:listener config-ref="process_customer-httpListenerConfig" path="/console/*" doc:name="HTTP" />
+        <apikit:console config-ref="process_customer-config" doc:name="APIkit Console" />
+    </flow>
+    <flow name="put:/customer/{ID}:process_customer-config">
+        <json:validate-schema schemaLocation="cdm/customer.json" doc:name="Validate CDM Input" />
+        <http:request config-ref="HTTP_Request_Configuration_salesforce" path="/customer/{ID}" method="PUT" doc:name="PutCustomer">
+            <http:request-builder>
+                <http:uri-param paramName="ID" value="#[flowVars.ID]" />
+            </http:request-builder>
+        </http:request>
+        <exception-strategy ref="httpForward_Exception_Strategy" doc:name="Reference Exception Strategy" />
+    </flow>
+    <flow name="get:/customer/{ID}:process_customer-config">
+        <set-variable variableName="loadOrdersFlag" value="#[message.inboundProperties.'http.query.params'.loadOrdersFlag]" doc:name="loadOrdersFlag Variable"/>
+        <http:request config-ref="HTTP_Request_Configuration_salesforce" path="/customer/{ID}" method="GET" doc:name="GetCustomerById">
+            <http:request-builder>
+                <http:uri-param paramName="ID" value="#[flowVars.ID]" />
+            </http:request-builder>
+        </http:request>
+        <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object" />
+        <choice doc:name="Choice">
+            <when expression="#[!(payload.isEmpty()) and flowVars.loadOrdersFlag==false]">
+                <json:object-to-json-transformer doc:name="Object to JSON" />
+                <json:validate-schema schemaLocation="cdm/customer.json" doc:name="Validate CDM Output" />
+            </when>
+            <when expression="#[!(payload.isEmpty())]">
+                <json:object-to-json-transformer doc:name="Object to JSON" />
+                <json:validate-schema schemaLocation="cdm/customer.json" doc:name="Validate CDM Response" />
+                <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object" />
+                <set-variable variableName="customer" value="#[payload]" doc:name="storeCustomer" />
+                <http:request config-ref="HTTP_Request_Configuration_order" path="/order" method="GET" doc:name="GetOrdersByCustomerId">
+                    <http:request-builder>
+                        <http:query-param paramName="customerId" value="#[payload.id]" />
+                    </http:request-builder>
+                </http:request>
+                <dw:transform-message doc:name="Transform Message">
+                    <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+{
+	id: flowVars.customer.id,
+	name: flowVars.customer.name,
+	socialNumber: flowVars.customer.socialNumber,
+	address: flowVars.customer.address,		
+	orders: payload map 
+	({
+		number: $.number,
+		date: $.date,
+		amount: $.amount
+	})
+}]]></dw:set-payload>
+                </dw:transform-message>
+            </when>
+            <otherwise>
+                <set-payload value="{}" doc:name="Set empty Payload" />
+            </otherwise>
+        </choice>
+        <exception-strategy ref="httpForward_Exception_Strategy" doc:name="Reference Exception Strategy" />
+    </flow>
+    <flow name="post:/customer:process_customer-config">
+        <json:validate-schema schemaLocation="cdm/customer.json" doc:name="Validate CDM input" />
+        <http:request config-ref="HTTP_Request_Configuration_salesforce" path="customer" method="POST" doc:name="PostCustomer" />
+        <exception-strategy ref="httpForward_Exception_Strategy" doc:name="Reference Exception Strategy" />
+    </flow>
+
+</mule>

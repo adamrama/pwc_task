@@ -1,0 +1,35 @@
+#%RAML 1.0
+title: REST experience API
+version: v1
+mediaType: application/json
+protocols:
+  - HTTP
+baseUri: experience
+  
+/customer:
+  post:
+    responses:
+      201:
+        body:
+          application/json:
+  /{ID}:
+    get:
+      queryParameters:
+         loadOrdersFlag:
+           type: boolean
+           required: false
+      responses: 
+         200:
+           body: 
+             application/json:
+    put:
+      responses:
+        200:
+          body:
+            application/json:
+/order:
+  post:
+    responses:
+      201:
+        body:
+          application/json:

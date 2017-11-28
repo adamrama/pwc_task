@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/apikit" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/apikit http://www.mulesoft.org/schema/mule/apikit/current/mule-apikit.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
+
+    <apikit:config name="experience_rest-config" raml="experience_rest.raml" consoleEnabled="false" doc:name="Router"/>
+    <flow name="experience_rest-main">
+        <http:listener config-ref="experience_rest-httpListenerConfig" path="/api/*" doc:name="HTTP"/>
+        <apikit:router config-ref="experience_rest-config" doc:name="APIkit Router"/>
+        <exception-strategy ref="apiKitGlobalExceptionMapping" doc:name="Reference Exception Strategy"/>
+    </flow>
+    <flow name="experience_rest-console">
+        <http:listener config-ref="experience_rest-httpListenerConfig" path="/console/*" doc:name="HTTP"/>
+        <apikit:console config-ref="experience_rest-config" doc:name="APIkit Console"/>
+    </flow>
+    <flow name="put:/customer/{ID}:experience_rest-config">
+        <json:validate-schema schemaLocation="cdm/customer.json" doc:name="Validate JSON Schema"/>
+        <http:request config-ref="HTTP_Request_Configuration_customer" path="/customer/{ID}" method="PUT" doc:name="PutCustomer">
+            <http:request-builder>
+                <http:uri-param paramName="ID" value="#[flowVars.ID]"/>
+            </http:request-builder>
+        </http:request>
+        <exception-strategy ref="httpForward_Exception_Strategy" doc:name="Reference Exception Strategy"/>
+
+    </flow>
+    <flow name="get:/customer/{ID}:experience_rest-config">
+        <http:request config-ref="HTTP_Request_Configuration_customer" path="/customer/{ID}" method="GET" doc:name="HTTP GetCustomerById">
+            <http:request-builder>
+                <http:uri-param paramName="ID" value="#[flowVars.ID]"/>
+            </http:request-builder>
+        </http:request>
+        <json:validate-schema schemaLocation="cdm/customer.json" doc:name="Validate JSON Schema"/>
+        <exception-strategy ref="httpForward_Exception_Strategy" doc:name="Reference Exception Strategy"/>
+
+    </flow>
+    <flow name="post:/customer:experience_rest-config">
+        <json:validate-schema schemaLocation="cdm/customer.json" doc:name="Validate JSON Schema"/>
+        <http:request config-ref="HTTP_Request_Configuration_customer" path="/customer" method="POST" doc:name="HTTP PostCustomer"/>
+        <exception-strategy ref="httpForward_Exception_Strategy" doc:name="Reference Exception Strategy"/>
+
+    </flow>
+    <flow name="post:/order:experience_rest-config">
+        <json:validate-schema schemaLocation="cdm/order.json" doc:name="Validate JSON Schema"/>
+        <http:request config-ref="HTTP_Request_Configuration_order" path="/order" method="POST" doc:name="HTTP PostOrder"/>
+        <exception-strategy ref="httpForward_Exception_Strategy" doc:name="Reference Exception Strategy"/>
+
+    </flow>
+
+</mule>

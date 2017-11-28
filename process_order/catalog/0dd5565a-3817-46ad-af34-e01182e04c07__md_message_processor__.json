@@ -1,15 +1,9 @@
 {
     "inputMessageMetadata": {
         "messagePayload": {
-            "connectorName": "Salesforce__Basic_Authentication",
-            "typeId": "Account"
-        }
-    },
-    "outputMessageMetadata": {
-        "messagePayload": {
             "model": {
                 "connectorName": "#_custom_mule_metadata_type_#",
-                "typeId": "Customer"
+                "typeId": "orders"
             },
             "isArray": false,
             "dataType": "LIST",
@@ -18,6 +12,7 @@
             }
         }
     },
-    "id": "2b43ea79-d5e8-4559-b3cc-8799988d6e68",
+    "outputMessageMetadata": {},
+    "id": "0dd5565a-3817-46ad-af34-e01182e04c07",
     "version": "5.2.0.0"
 }

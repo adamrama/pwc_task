@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/apikit" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/apikit http://www.mulesoft.org/schema/mule/apikit/current/mule-apikit.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
+
+    <apikit:config name="process_order-config" raml="process_order.raml" consoleEnabled="false" doc:name="Router" keepRamlBaseUri="false"/>
+    <flow name="process_order-main">
+        <http:listener config-ref="process_order-httpListenerConfig" path="/process/*" doc:name="HTTP"/>
+        <apikit:router config-ref="process_order-config" doc:name="APIkit Router"/>
+        <exception-strategy ref="apiKitGlobalExceptionMapping" doc:name="Reference Exception Strategy"/>
+    </flow>
+    <flow name="process_order-console">
+        <http:listener config-ref="process_order-httpListenerConfig" path="/console/*" doc:name="HTTP"/>
+        <apikit:console config-ref="process_order-config" doc:name="APIkit Console"/>
+    </flow>
+    <flow name="get:/order:process_order-config">
+        <http:request config-ref="HTTP_Request_Configuration_orderdb" path="/order" method="GET" doc:name="GetOrders">
+            <http:request-builder>
+                <http:query-params expression="#[message.inboundProperties.'http.query.params']"/>
+
+            </http:request-builder>
+        </http:request>
+        <exception-strategy ref="httpForward_Exception_Strategy" doc:name="Reference Exception Strategy" />
+    </flow>
+    <flow name="get:/order/{ID}:process_order-config">
+        <http:request config-ref="HTTP_Request_Configuration_orderdb" path="/order/{ID}" method="GET" doc:name="GetOrderById">
+            <http:request-builder>
+                <http:uri-param paramName="ID" value="#[flowVars.ID]"/>
+
+            </http:request-builder>
+        </http:request>
+        <choice doc:name="Choice">
+            <when expression="#[message.payloadAs(java.lang.String).length() &gt; 2]">
+                <json:validate-schema schemaLocation="cdm/order.json" doc:name="Validate CDM Output" />
+            </when>
+            <otherwise>
+                <set-payload value="{}" doc:name="Set empty Payload" />
+            </otherwise>
+        </choice>
+        <exception-strategy ref="httpForward_Exception_Strategy" doc:name="Reference Exception Strategy" />
+    </flow>
+    <flow name="post:/order:process_order-config">
+        <json:validate-schema schemaLocation="cdm/order.json" doc:name="Validate CDM input" />
+        <foreach collection="#[payload]" doc:name="For Each">
+            <http:request config-ref="HTTP_Request_Configuration_customer" path="/customer/{ID}" method="GET" doc:name="GetCustomerById">
+                <http:request-builder>
+                    <http:uri-param paramName="ID" value="#[json:customerId]"/>
+                </http:request-builder>
+            </http:request>
+            <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
+            <validation:is-not-empty message="Customer not found in SF" value="#[payload]" doc:name="Validation"/>
+        </foreach>
+        <http:request config-ref="HTTP_Request_Configuration_orderdb" path="/order" method="POST" doc:name="PostOrder" />
+        <exception-strategy ref="httpForward_Exception_Strategy" doc:name="Reference Exception Strategy" />
+    </flow>
+
+    <flow name="get:/order/report:process_order-config">
+        <http:request config-ref="HTTP_Request_Configuration_orderdb" path="/order" method="GET" doc:name="GetOrders">
+            <http:request-builder>
+                <http:query-params expression="#[message.inboundProperties.'http.query.params']"/>
+            </http:request-builder>
+        </http:request>
+        <dw:transform-message doc:name="GroupOrdersByCustomer" metadata:id="0dd5565a-3817-46ad-af34-e01182e04c07">
+            <dw:input-payload doc:sample="sample_data\list_json.json" mimeType="application/json"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+payload groupBy ($.customerId ++ $.date[0..10]) pluck {
+    customerId: $.customerId[0] as :string,
+    date: ($.date[0])[0..10] as :string,
+    sum: sizeOf $,
+    totalAmount: sum $.amount,
+    orders: $ map 
+    ((current)->{
+    	number: current.number,
+    	amount: current.amount,
+    	date: current.date
+	})
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <set-variable variableName="ordersData" value="#[payload]" doc:name="StoreOrders"/>
+        <flow-ref name="GetCustomers" doc:name="Get Customers"/>
+        <dw:transform-message doc:name="Aggregate">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+flowVars.ordersData map ((current)->{
+	customer: (payload filter $.id == current.customerId)[0],
+	sum: current.sum,
+	totalAmount: current.totalAmount,
+	orders: current.orders
+})]]></dw:set-payload>
+        </dw:transform-message>
+        <exception-strategy ref="httpForward_Exception_Strategy" doc:name="Reference Exception Strategy"/>
+
+    </flow>
+    <flow name="GetCustomers">
+        <splitter expression="#[payload]" doc:name="Splitter"/>
+        <http:request config-ref="HTTP_Request_Configuration_customer" path="/customer/{ID}" method="GET" doc:name="GetCustomerById">
+            <http:request-builder>
+                <http:query-param paramName="loadOrdersFlag" value="false"/>
+                <http:uri-param paramName="ID" value="#[payload.customerId]"/>
+
+            </http:request-builder>
+        </http:request>
+    </flow>
+
+</mule>

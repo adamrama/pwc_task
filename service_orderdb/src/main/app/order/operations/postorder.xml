@@ -50,8 +50,8 @@ VALUES
 	&quot;status&quot;:&quot;ERROR&quot;,
 	&quot;description&quot;:&quot;#[exception]&quot;
 }" doc:name="Set Payload"/>
+                <json:object-to-json-transformer doc:name="Object to JSON"/>
             </catch-exception-strategy>
-            <catch-exception-strategy doc:name="Catch Exception Strategy"/>
         </choice-exception-strategy>
     </flow>
 </mule>

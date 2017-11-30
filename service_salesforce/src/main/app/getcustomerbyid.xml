@@ -41,9 +41,6 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
                 <set-property propertyName="http.status" value="#[200]" doc:name="200 status"/>
                 <set-payload value="{}" doc:name="empty payload"/>
             </catch-exception-strategy>
-            <catch-exception-strategy doc:name="default">
-                <logger level="INFO" doc:name="Logger"/>
-            </catch-exception-strategy>
         </choice-exception-strategy>
     </flow>
 </mule>

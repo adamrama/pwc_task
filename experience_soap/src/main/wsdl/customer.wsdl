@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<definitions name="Customer"
+ targetNamespace="http://com.pwc.training.task/soap/Customer.wsdl"
+ xmlns:SOAP-ENV="http://www.w3.org/2003/05/soap-envelope"
+ xmlns:SOAP-ENC="http://www.w3.org/2003/05/soap-encoding"
+ xmlns:tns="http://com.pwc.training.task/soap/Customer.wsdl"
+ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+ xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/"
+ xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+ xmlns:MIME="http://schemas.xmlsoap.org/wsdl/mime/"
+ xmlns:DIME="http://schemas.xmlsoap.org/ws/2002/04/dime/wsdl/"
+ xmlns:WSDL="http://schemas.xmlsoap.org/wsdl/"
+ xmlns="http://schemas.xmlsoap.org/wsdl/" >
+
+	<types>		
+		<xsd:schema targetNamespace="http://com.pwc.training.task/soap/Customer.wsdl"
+				xmlns="http://www.w3.org/2001/XMLSchema"
+				elementFormDefault="qualified"
+				attributeFormDefault="qualified">
+
+			<element name="GetCustomer">
+				<complexType>
+					<sequence>
+						<element name="Id" type="xsd:string" />
+					</sequence>
+				</complexType>
+			</element>
+			<element name="GetCustomerResponse">
+				<complexType>
+					<sequence>
+						<element name="Customer">
+							<complexType>
+								<sequence>
+									<element name="Id" type="xsd:string" />
+									<element name="Name" type="xsd:string" />
+									<element name="SocialNumber" type="xsd:string" />
+									<element name="Address">
+										<complexType>
+											<sequence>
+												<element name="City" type="xsd:string" />
+												<element name="Street" type="xsd:string" />
+												<element name="ZipCode" type="xsd:string" />
+											</sequence>
+										</complexType>
+									</element>
+									<element name="Orders">
+										<complexType>
+											<sequence>
+												<element name="Order">
+													<complexType>
+														<sequence>
+															<element name="Number" type="xsd:string" />
+															<element name="Date" type="xsd:dateTime" />
+															<element name="Amount" type="xsd:decimal" />
+														</sequence>
+													</complexType>
+												</element>
+											</sequence>
+										</complexType>
+									</element>
+								</sequence>
+							</complexType>
+						</element>
+					</sequence>
+				</complexType>
+			</element>
+
+		</xsd:schema>		
+	</types>
+
+	<!-- LIST OF MESSAGES -->
+
+	<message name="GetCustomerReq">
+		<part name="parameters" element="tns:GetCustomer" />
+	</message>
+
+	<message name="GetCustomerRes">
+		<part name="parameters" element="tns:GetCustomerResponse" />
+	</message>
+
+	<!-- PORT TYPE -->
+	<portType name="SoapCustomerPortType">
+		<operation name="GetCustomer">
+			<input message="tns:GetCustomerReq" />
+			<output message="tns:GetCustomerRes" />
+		</operation>
+	</portType>
+
+	<!-- BINDING SOAP 1.2 -->
+
+	<binding name="SoapCustomer" type="tns:SoapCustomerPortType">
+		<soap12:binding transport="http://schemas.xmlsoap.org/soap/http" style="document"/>
+		<operation name="GetCustomer">
+			<input>
+				<soap12:body use="literal" encodingStyle="http://www.w3.org/2003/05/soap-encoding"/>
+			</input>
+			<output>
+				<soap12:body use="literal" encodingStyle="http://www.w3.org/2003/05/soap-encoding"/>
+			</output>
+		</operation>
+	</binding> 
+
+	<!-- BINDING SOAP 1.1 -->
+
+	<binding name="SoapCustomer11" type="tns:SoapCustomerPortType">
+		<soap:binding transport="http://schemas.xmlsoap.org/soap/http" style="document"/>
+		<operation name="GetCustomer">
+			<soap:operation style="document" soapAction="GetCustomer"/>
+			<input>
+				<soap:body use="literal" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"/>
+			</input>
+			<output>
+				<soap:body use="literal" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"/>
+			</output>
+		</operation>
+	</binding> 
+
+	<!-- SERVICE -->
+	<service name="Customer">
+		<documentation>Customer service</documentation>
+		<port name="Customer" binding="tns:SoapCustomer">
+			<soap12:address location="http://localhost:8086/customer" />
+		</port>
+		<port name="Customer11" binding="tns:SoapCustomer11">
+			<soap:address location="http://localhost:8086/customer11" />
+		</port>
+	</service>
+
+</definitions>

@@ -1,0 +1,64 @@
+<mule xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit-soap="http://www.mulesoft.org/schema/mule/apikit-soap" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+http://www.mulesoft.org/schema/mule/apikit-soap http://www.mulesoft.org/schema/mule/apikit-soap/current/mule-apikit-soap.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd">
+
+  <apikit-soap:config name="/Customer/Customer/api-config" wsdlUrl="customer.wsdl" serviceName="Customer" portName="Customer" doc:name="APIkit SOAP: Configuration"/>
+  <flow name="api-main">
+    <http:listener path="/Customer/Customer" config-ref="experience_soap-httpListenerConfig" doc:name="/Customer/Customer" />
+    <apikit-soap:router config-ref="/Customer/Customer/api-config" doc:name="SOAP Router"/>
+  </flow>
+  <flow name="GetCustomer:/Customer/Customer/api-config">
+        <dw:transform-message doc:name="Transform Message" metadata:id="2e636116-72c4-4574-8a98-75dc3190965a">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+%namespace ns0 http://com.pwc.training.task/soap/Customer.wsdl
+---
+payload.ns0#GetCustomer.ns0#Id]]></dw:set-payload>
+        </dw:transform-message>
+        <http:request config-ref="HTTP_Request_Configuration_customer" path="/customer/{ID}" method="GET" doc:name="HTTP">
+            <http:request-builder>
+                <http:uri-param paramName="ID" value="#[payload]"/>
+            </http:request-builder>
+        </http:request>
+        <json:validate-schema schemaLocation="cdm/customer.json" doc:name="Validate JSON Schema"/>
+        <dw:transform-message doc:name="Transform Message" metadata:id="062c315e-b1e4-437d-b5b9-ee79623fbdcb">
+            <dw:input-payload mimeType="application/json"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml
+%namespace ns0 http://com.pwc.training.task/soap/Customer.wsdl
+---
+{
+	ns0#GetCustomerResponse:
+	{
+		(
+			ns0#Customer: 
+				{
+					ns0#Id: payload.id,
+					ns0#Name: payload.name,
+					ns0#SocialNumber: payload.socialNumber,
+					ns0#Address: 
+					{
+						ns0#City: payload.address.city,
+						ns0#Street: payload.address.street,
+						ns0#ZipCode: payload.address.zipCode
+					},
+					ns0#Orders: { (payload.orders map {
+      					ns0#Order : 
+      					{
+      						ns0#Number: $.number,
+      						ns0#Date: $.date,
+      						ns0#Amount: $.amount
+      					}
+      				})}
+				}	
+		) when ((sizeOf payload) > 0)
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+
+  </flow>
+</mule>

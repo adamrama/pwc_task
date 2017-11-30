@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:jms="http://www.mulesoft.org/schema/mule/jms" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
+    <jms:activemq-connector name="Active_MQ" brokerURL="${jms.url}" validateConnections="true" doc:name="Active MQ"/>
+    <flow name="experience_csvFlow">
+        <file:inbound-endpoint path="C:\Users\aramatowsk001\Desktop\csv_input" moveToDirectory="C:\Users\aramatowsk001\Desktop\csv_output" responseTimeout="10000" doc:name="File">
+            <file:filename-regex-filter pattern=".*csv" caseSensitive="true"/>
+        </file:inbound-endpoint>
+        <dw:transform-message doc:name="Transform Message" metadata:id="b3e68d2d-1d48-4676-a85e-5e985c944024">
+            <dw:input-payload doc:sample="C:\Users\aramatowsk001\Desktop\csv_output\Book1.csv" mimeType="application/csv">
+                <dw:reader-property name="separator" value=";"/>
+            </dw:input-payload>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+%function dateFormat(val) (val as :datetime as :string {format: "YYYY-MM-dd'T'HH:mm:ss'Z'"}) when val != null otherwise ''
+---
+payload map ((payload01 , indexOfPayload01) -> {
+	amount: payload01.amount as :number {format: "#,#"},
+	customerId: payload01.customerId,
+	date: dateFormat(payload01.date),
+	number: payload01.id
+})]]></dw:set-payload>
+        </dw:transform-message>
+        <json:validate-schema schemaLocation="cdm/orders.json" doc:name="Validate JSON Schema"/>
+        <json:json-to-object-transformer returnClass="java.util.ArrayList" doc:name="JSON to Object"/>
+        <foreach collection="#[payload]" doc:name="For Each">
+            <json:object-to-json-transformer doc:name="Object to JSON"/>
+            <jms:outbound-endpoint exchange-pattern="request-response" queue="create.order.queue" connector-ref="Active_MQ" doc:name="JMS"/>
+        </foreach>
+    </flow>
+</mule>
